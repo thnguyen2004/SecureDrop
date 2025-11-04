@@ -2,5 +2,9 @@
     "johndoe123@gmail.com": {
         "name": "John Doe",
         "password": "1234"
+    },
+    "janedoe456@gmail.com": {
+        "name": "Jane Doe",
+        "password": "5678"
     }
 }
