@@ -1,14 +1,29 @@
 import json, os
 
-# User Registration
+# Load users from JSON file
+def _load_users():
 
-def register_user():
     # Load existing users from json file
     if os.path.exists("users.json"):
         with open("users.json", "r") as f:
             users = json.load(f)
     else:
         users = {}
+
+    return users
+
+# Check if any users are registered
+def any_users_registered() -> bool:
+
+    # Return True if users.json contains at least one user.
+    users = _load_users()
+
+    return len(users) > 0
+
+# User Registration
+def register_user():
+
+    users = _load_users()
 
     name = input("Enter your Full Name: ").strip()
 
