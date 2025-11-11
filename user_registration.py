@@ -1,4 +1,11 @@
-import json, os
+# This module handles user registration for SecureDrop
+# It allows new users to register by providing their name, email, and password.
+# User details are stored in a JSON file named users.json.
+# Passwords are currently stored in plaintext (to be improved in future milestones).
+# Future improvements will include password hashing and salting.
+
+import json, os, base64, hashlib
+
 
 # Load users from JSON file
 def _load_users():

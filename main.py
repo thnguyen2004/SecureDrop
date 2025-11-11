@@ -1,3 +1,8 @@
+# Main application file for SecureDrop
+# It manages user registration and login flow.
+# It uses the user_registration module for handling registrations.
+# Future milestones will include user login functionality.
+
 from user_registration import any_users_registered, register_user
 
 # Main application flow
