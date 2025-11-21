@@ -7,9 +7,6 @@ from user_registration import any_users_registered, register_user
 
 
 def main():
-
-    print()  # clean starting line
-
     # If no users exist, trigger registration flow
     if not any_users_registered():
         print("No users are registered with this client.")

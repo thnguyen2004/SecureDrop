@@ -7,6 +7,7 @@
 import json, os, base64, hashlib
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
+from getpass import getpass
 
 
 # Load users from JSON file
@@ -34,19 +35,22 @@ def register_user():
 
     users = _load_users()
 
-    name = input("Enter your Full Name: ").strip()
+    name = input("Enter Full Name: ").strip()
 
-    # Get user inputs (email and password)
-    email = input("Enter your email: ").strip() # Trim whitespace
+    email = input("Enter Email Address: ").strip()
     if email in users:
-        print("Email already registered!")
+        print("\nEmail already registered.")
         return
-    
-    password = input("Enter your password: ").strip()
-    confirm_password = input("Confirm your password: ").strip()
-    if password != confirm_password:
-        print("Passwords do not match!")
+
+    # Hidden password input
+    password = getpass("Enter Password: ")
+    confirm = getpass("Re-enter Password: ")
+
+    if password != confirm:
+        print("\nPasswords do not match.")
         return
+
+    print("\nPasswords Match.")
 
     # Hash + salt the password using PBKDF2
     salt = os.urandom(16)
@@ -88,4 +92,5 @@ def register_user():
     with open("users.json", "w") as f:
         json.dump(users, f, indent=4)
 
-    print("Registration successful!")
+    print("User Registered.")
+    print("Exiting SecureDrop.")
