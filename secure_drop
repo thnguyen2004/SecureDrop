@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# get the directory where secure_drop is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# activate venv using the local path
+source "$SCRIPT_DIR/venv/bin/activate"
+
+# run the Python main program
+python3 "$SCRIPT_DIR/main.py"
+

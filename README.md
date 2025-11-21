@@ -30,7 +30,18 @@ Python ≥ 3.8:
 Required for standard library features and type hints.	Pre-installed on most systems
 
 🧰 Installation & Setup
+
+1. Clone the repository:
 - git clone https://github.com/<your-username>/SecureDrop.git
-  cd SecureDrop
+- cd SecureDrop
 
+2. Install Python and virtual environment tools:
+- sudo apt update
+- sudo apt install python3 python3-pip python3-venv
 
+3. Create and activate a virtual environment:
+- python3 -m venv venv
+- source venv/bin/activate
+
+4. Install project dependencies:
+- pip install -r requirements.txt
