@@ -9,7 +9,7 @@ The project is being developed in phases (milestones) to demonstrate practical c
 
 This implementation currently completes Milestone 1 — User Registration, providing a secure way to register new users while storing their credentials safely using salted password hashes.
 
-🧩 Current Features (Milestone 1)
+🧩 Current Features (Milestone 3 Done)
 
 CLI-based registration flow (python main.py)
 Automatic detection of existing users
@@ -21,7 +21,12 @@ SecureDrop/
 │
 ├── main.py                # Entry-point for the CLI
 ├── user_registration.py   # Handles registration & secure password hashing
+├── user_login.py          # Handles the Login logic
+├── contacts.py            # Handles Contacts functionality
+├── utils.py
+├── contacts.json          # Local user database 
 ├── users.json             # Local user database (auto-created)
+├── requirements.txt
 └── README.md              # Project documentation
 
 🧱 Dependencies
