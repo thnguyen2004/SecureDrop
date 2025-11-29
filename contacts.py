@@ -2,12 +2,13 @@
 
 import json
 import os
+from utils import encrypt_json_with_key, decrypt_json_with_key
 
 CONTACTS_FILE = "contacts.json"
 
 
-def load_all_contacts() -> dict:
-    """Load the entire contacts database (dict of dicts)."""
+def _load_contacts_file() -> dict:
+    """Load the raw (encrypted) contacts file: owner_email -> encrypted blob."""
     if os.path.exists(CONTACTS_FILE):
         try:
             if os.path.getsize(CONTACTS_FILE) == 0:
@@ -19,41 +20,51 @@ def load_all_contacts() -> dict:
     return {}
 
 
-def save_all_contacts(all_contacts: dict) -> None:
-    """Save the entire contacts database."""
+def _save_contacts_file(all_contacts: dict) -> None:
+    """Save the raw (encrypted) contacts file."""
     with open(CONTACTS_FILE, "w", encoding="utf-8") as f:
         json.dump(all_contacts, f, indent=4)
 
 
-def add_contact(owner_email: str, contact_name: str, contact_email: str) -> None:
+def load_contacts_for_session(session: dict) -> dict:
     """
-    Add or overwrite a contact for the given owner.
+    Decrypt and return the logged-in user's contact dict.
+    Returns {} if none exist yet.
     """
-    all_contacts = load_all_contacts()
+    owner_email = session["email"]
+    key = session["session_key"]
 
-    # Get this user's contact list or create a new one
-    owner_book = all_contacts.get(owner_email, {})
+    all_contacts = _load_contacts_file()
+    enc_blob = all_contacts.get(owner_email)
 
-    owner_book[contact_email] = {
-        "name": contact_name,
-        "email": contact_email
-    }
+    if not enc_blob:
+        return {}
 
-    all_contacts[owner_email] = owner_book
-    save_all_contacts(all_contacts)
-
-
-def list_contacts_for_owner(owner_email: str) -> dict:
-    """Return a dict of contacts for a given owner email."""
-    all_contacts = load_all_contacts()
-    return all_contacts.get(owner_email, {})
+    try:
+        return decrypt_json_with_key(enc_blob, key)
+    except Exception:
+        # Tampering or wrong key
+        print("Warning: Failed to decrypt contacts (possible tampering or key mismatch).")
+        return {}  # Safe fallback; you could also choose to abort.
 
 
-def add_contact_cli(owner_email: str) -> None:
+def save_contacts_for_session(session: dict, contacts_dict: dict) -> None:
     """
-    CLI helper:
-      - prompts for Full Name and Email Address of the contact
-      - adds/overwrites contact for the logged-in user
+    Encrypt and save the logged-in user's contact dict.
+    """
+    owner_email = session["email"]
+    key = session["session_key"]
+
+    all_contacts = _load_contacts_file()
+    enc_blob = encrypt_json_with_key(contacts_dict, key)
+
+    all_contacts[owner_email] = enc_blob
+    _save_contacts_file(all_contacts)
+
+
+def add_contact_cli(owner_session: dict) -> None:
+    """
+    CLI helper bound to the logged-in user session.
     """
     print("\nAdd new contact")
     contact_name = input("Enter Full Name: ").strip()
@@ -63,5 +74,27 @@ def add_contact_cli(owner_email: str) -> None:
         print("Name and email are required.\n")
         return
 
-    add_contact(owner_email, contact_name, contact_email)
+    contacts = load_contacts_for_session(owner_session)
+    contacts[contact_email] = {
+        "name": contact_name,
+        "email": contact_email,
+    }
+
+    save_contacts_for_session(owner_session, contacts)
     print("Contact Added.\n")
+
+
+def list_contacts_cli(owner_session: dict) -> None:
+    """
+    Decrypt and print contacts for the logged-in user.
+    """
+    contacts = load_contacts_for_session(owner_session)
+
+    if not contacts:
+        print("\nNo contacts found.\n")
+        return
+
+    print("\nYour contacts:")
+    for email, info in contacts.items():
+        print(f" * {info['name']} <{email}>")
+    print()

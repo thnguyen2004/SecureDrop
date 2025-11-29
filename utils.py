@@ -5,7 +5,8 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
 
-# Load users.json or return empty dictionary
+# ---------------- USERS -----------------
+
 def load_users():
     if os.path.exists("users.json"):
         with open("users.json", "r") as f:
@@ -13,13 +14,11 @@ def load_users():
     return {}
 
 
-# Write updated users to users.json
 def save_users(users: dict):
     with open("users.json", "w") as f:
         json.dump(users, f, indent=4)
 
 
-# Hash a password using PBKDF2-HMAC-SHA256 (salt generated if not provided)
 def hash_password(password: str, salt: bytes = None):
     if salt is None:
         salt = os.urandom(16)
@@ -37,7 +36,6 @@ def hash_password(password: str, salt: bytes = None):
     )
 
 
-# Verify a given password against stored salt + PBKDF2 hash
 def verify_password(password: str, salt_b64: str, stored_hash_b64: str) -> bool:
     salt = base64.b64decode(salt_b64)
     stored_hash = base64.b64decode(stored_hash_b64)
@@ -52,7 +50,6 @@ def verify_password(password: str, salt_b64: str, stored_hash_b64: str) -> bool:
     return test_hash == stored_hash
 
 
-# Generate an RSA-2048 keypair (public key string + private key bytes)
 def generate_rsa_keypair():
     key = RSA.generate(2048)
     public_key = key.publickey().export_key().decode()
@@ -60,7 +57,6 @@ def generate_rsa_keypair():
     return public_key, private_key_bytes
 
 
-# Encrypt RSA private key using AES-GCM with a password-derived key
 def encrypt_private_key(private_key_bytes: bytes, password: str):
     aes_key = hashlib.sha256(password.encode()).digest()
     cipher = AES.new(aes_key, AES.MODE_GCM)
@@ -73,7 +69,6 @@ def encrypt_private_key(private_key_bytes: bytes, password: str):
     )
 
 
-# Decrypt AES-GCM encrypted RSA private key
 def decrypt_private_key(ciphertext_b64: str, nonce_b64: str, tag_b64: str, password: str):
     aes_key = hashlib.sha256(password.encode()).digest()
 
@@ -83,3 +78,42 @@ def decrypt_private_key(ciphertext_b64: str, nonce_b64: str, tag_b64: str, passw
 
     cipher = AES.new(aes_key, AES.MODE_GCM, nonce=nonce)
     return cipher.decrypt_and_verify(ciphertext, tag)
+
+# ---------------- CONTACTS -----------------
+
+def derive_session_key(password: str):
+    """
+    Derive a 256-bit symmetric key from the user's password.
+    Used for encrypting contacts (and could be reused for other session data).
+    """
+    return hashlib.sha256(password.encode()).digest()
+
+
+def encrypt_json_with_key(data: dict, key: bytes):
+    """
+    Encrypt a JSON-serializable dict using AES-GCM with the given key.
+    Returns a dict containing base64-encoded nonce, tag, ciphertext.
+    """
+    cipher = AES.new(key, AES.MODE_GCM)
+    plaintext = json.dumps(data).encode()
+    ciphertext, tag = cipher.encrypt_and_digest(plaintext)
+
+    return {
+        "nonce": base64.b64encode(cipher.nonce).decode(),
+        "tag": base64.b64encode(tag).decode(),
+        "ciphertext": base64.b64encode(ciphertext).decode()
+    }
+
+
+def decrypt_json_with_key(enc_obj: dict, key: bytes):
+    """
+    Decrypt a JSON-blob encrypted by encrypt_json_with_key.
+    Raises ValueError if integrity check fails.
+    """
+    nonce = base64.b64decode(enc_obj["nonce"])
+    tag = base64.b64decode(enc_obj["tag"])
+    ciphertext = base64.b64decode(enc_obj["ciphertext"])
+
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    plaintext = cipher.decrypt_and_verify(ciphertext, tag)
+    return json.loads(plaintext.decode())

@@ -1,7 +1,8 @@
 from user_registration import register_user
 from user_login import login_user
 from utils import load_users
-from contacts import add_contact_cli, list_contacts_for_owner
+from contacts import add_contact_cli, list_contacts_cli
+
 
 def secure_drop_shell(session):
     while True:
@@ -16,21 +17,11 @@ def secure_drop_shell(session):
 
         elif cmd == "add":
             # Milestone 3: Add contact for the logged-in user
-            owner_email = session["email"]
-            add_contact_cli(owner_email)
+            add_contact_cli(session)
 
         elif cmd == "list":
             # Milestone 3: List this user's contacts (local view)
-            owner_email = session["email"]
-            contacts = list_contacts_for_owner(owner_email)
-
-            if not contacts:
-                print("\nNo contacts found for this user.\n")
-            else:
-                print("\nYour contacts:")
-                for email, info in contacts.items():
-                    print(f" * {info['name']} <{email}>")
-                print()
+            list_contacts_cli(session)
 
         elif cmd == "exit":
             print("Exiting SecureDrop.\n")
