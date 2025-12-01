@@ -9,11 +9,10 @@ def secure_drop_shell(session):
         cmd = input("secure_drop> ").strip().lower()
 
         if cmd == "help":
-            print("\nAvailable Commands:")
-            print(" add   – Add a new contact (Milestone 3)")
-            print(" list  – List available contacts (Milestone 3/4)")
-            print(" send  – Send a file (Milestone 4/5)")
-            print(" exit  – Exit SecureDrop\n")
+            print(' "add"   -> Add a new contact')
+            print(' "list"  -> List all online contacts')
+            print(' "send"  -> Transfer file to contact')
+            print(' "exit"  -> Exit SecureDrop')
 
         elif cmd == "add":
             # Milestone 3: Add contact for the logged-in user

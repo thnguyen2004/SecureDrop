@@ -66,7 +66,6 @@ def add_contact_cli(owner_session: dict) -> None:
     """
     CLI helper bound to the logged-in user session.
     """
-    print("\nAdd new contact")
     contact_name = input("Enter Full Name: ").strip()
     contact_email = input("Enter Email Address: ").strip()
 
@@ -81,7 +80,7 @@ def add_contact_cli(owner_session: dict) -> None:
     }
 
     save_contacts_for_session(owner_session, contacts)
-    print("Contact Added.\n")
+    print("Contact Added.")
 
 
 def list_contacts_cli(owner_session: dict) -> None:
@@ -91,10 +90,10 @@ def list_contacts_cli(owner_session: dict) -> None:
     contacts = load_contacts_for_session(owner_session)
 
     if not contacts:
-        print("\nNo contacts found.\n")
+        print("No contacts found.\n")
         return
 
-    print("\nYour contacts:")
+    print("The following contacts are online:")
     for email, info in contacts.items():
         print(f" * {info['name']} <{email}>")
     print()
