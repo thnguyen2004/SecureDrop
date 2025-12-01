@@ -3,7 +3,6 @@ from utils import (
     load_users,
     verify_password,
     decrypt_private_key,
-    derive_session_key,
 )
 
 def login_user():
@@ -33,10 +32,7 @@ def login_user():
             password
         )
 
-        # Derive a session key for encrypting contacts, etc.
-        session_key = derive_session_key(password)
-
-        # Clear raw password from memory reference
+        # Remove password reference from RAM
         password = None
 
         print("Welcome to SecureDrop.")
@@ -47,6 +43,5 @@ def login_user():
             "email": email,
             "name": user["name"],
             "public_key": user["public_key"],
-            "private_key_bytes": private_key,
-            "session_key": session_key,   # <-- NEW
+            "private_key_bytes": private_key
         }

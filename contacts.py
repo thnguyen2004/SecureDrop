@@ -2,17 +2,14 @@
 
 import json
 import os
-from utils import encrypt_json_with_key, decrypt_json_with_key
 
 CONTACTS_FILE = "contacts.json"
 
 
-def _load_contacts_file() -> dict:
-    """Load the raw (encrypted) contacts file: owner_email -> encrypted blob."""
-    if os.path.exists(CONTACTS_FILE):
+# Load entire contacts.json or return empty structure
+def _load_all_contacts():
+    if os.path.exists(CONTACTS_FILE) and os.path.getsize(CONTACTS_FILE) > 0:
         try:
-            if os.path.getsize(CONTACTS_FILE) == 0:
-                return {}
             with open(CONTACTS_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except json.JSONDecodeError:
@@ -20,52 +17,36 @@ def _load_contacts_file() -> dict:
     return {}
 
 
-def _save_contacts_file(all_contacts: dict) -> None:
-    """Save the raw (encrypted) contacts file."""
+# Save entire contacts.json
+def _save_all_contacts(all_data):
     with open(CONTACTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(all_contacts, f, indent=4)
+        json.dump(all_data, f, indent=4)
 
 
-def load_contacts_for_session(session: dict) -> dict:
-    """
-    Decrypt and return the logged-in user's contact dict.
-    Returns {} if none exist yet.
-    """
+# Get the logged-in user's contact list, or empty if none exist
+def load_contacts_for_user(email: str) -> dict:
+    all_data = _load_all_contacts()
+    user_entry = all_data.get(email, {})
+    return user_entry.get("contacts", {})
+
+
+# Save the logged-in user's contacts
+def save_contacts_for_user(email: str, name: str, contacts: dict):
+    all_data = _load_all_contacts()
+
+    all_data[email] = {
+        "name": name,
+        "contacts": contacts
+    }
+
+    _save_all_contacts(all_data)
+
+
+# Add a contact (user A adds user B)
+def add_contact_cli(session: dict):
     owner_email = session["email"]
-    key = session["session_key"]
+    owner_name = session["name"]
 
-    all_contacts = _load_contacts_file()
-    enc_blob = all_contacts.get(owner_email)
-
-    if not enc_blob:
-        return {}
-
-    try:
-        return decrypt_json_with_key(enc_blob, key)
-    except Exception:
-        # Tampering or wrong key
-        print("Warning: Failed to decrypt contacts (possible tampering or key mismatch).")
-        return {}  # Safe fallback; you could also choose to abort.
-
-
-def save_contacts_for_session(session: dict, contacts_dict: dict) -> None:
-    """
-    Encrypt and save the logged-in user's contact dict.
-    """
-    owner_email = session["email"]
-    key = session["session_key"]
-
-    all_contacts = _load_contacts_file()
-    enc_blob = encrypt_json_with_key(contacts_dict, key)
-
-    all_contacts[owner_email] = enc_blob
-    _save_contacts_file(all_contacts)
-
-
-def add_contact_cli(owner_session: dict) -> None:
-    """
-    CLI helper bound to the logged-in user session.
-    """
     contact_name = input("Enter Full Name: ").strip()
     contact_email = input("Enter Email Address: ").strip()
 
@@ -73,27 +54,48 @@ def add_contact_cli(owner_session: dict) -> None:
         print("Name and email are required.\n")
         return
 
-    contacts = load_contacts_for_session(owner_session)
-    contacts[contact_email] = {
+    # Load all existing contacts
+    contacts_owner = load_contacts_for_user(owner_email)
+    contacts_other = load_contacts_for_user(contact_email)
+
+    # Add pending contact for owner
+    contacts_owner[contact_email] = {
         "name": contact_name,
-        "email": contact_email,
+        "confirmed": False
     }
 
-    save_contacts_for_session(owner_session, contacts)
+    # If the other user also added this user -> confirm both sides
+    if owner_email in contacts_other:
+        contacts_owner[contact_email]["confirmed"] = True
+        contacts_other[owner_email]["confirmed"] = True
+
+        # Save the other user's updated entry
+        save_contacts_for_user(
+            contact_email,
+            contacts_other.get("name", ""),
+            contacts_other
+        )
+
+    # Save owner's updated contacts
+    save_contacts_for_user(owner_email, owner_name, contacts_owner)
+
     print("Contact Added.")
 
 
-def list_contacts_cli(owner_session: dict) -> None:
-    """
-    Decrypt and print contacts for the logged-in user.
-    """
-    contacts = load_contacts_for_session(owner_session)
+# List only confirmed contacts
+def list_contacts_cli(session: dict):
+    owner_email = session["email"]
+    contacts = load_contacts_for_user(owner_email)
 
-    if not contacts:
+    confirmed_contacts = {
+        e: c for e, c in contacts.items() if c.get("confirmed")
+    }
+
+    if not confirmed_contacts:
         print("No contacts found.\n")
         return
 
     print("The following contacts are online:")
-    for email, info in contacts.items():
+    for email, info in confirmed_contacts.items():
         print(f" * {info['name']} <{email}>")
     print()

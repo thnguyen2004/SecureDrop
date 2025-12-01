@@ -1,7 +1,15 @@
 {
-    "johndoe123@gmail.com": {
-        "nonce": "olO0+CyLiFaD196vojGiog==",
-        "tag": "bFIybEYMgRI/fNfNtuMTZA==",
-        "ciphertext": "CXEsrb3ytVpGUnc9MB3S3eI0N8g6Rwmp0dDwUwHRckiZ3aYXd+IYOpDrv/hZplYcLfvd+1zMVy1s/8J1J93rslAQCGxytDwtD10grbQfjz+2MOcb"
+    "UserA@securedrop.org": {
+        "name": "User A",
+        "contacts": {
+            "UserB@securedrop.org": {
+                "name": "User B",
+                "confirmed": false
+            },
+            "UserC@securedrop.org": {
+                "name": "User C",
+                "confirmed": false
+            }
+        }
     }
 }

@@ -33,7 +33,7 @@ def main():
     users = load_users()
 
     if len(users) == 0:
-        print("No users are registered with this client.\n")
+        print("No users are registered with this client.")
         choice = input("Do you want to register a new user (y/n)? ").strip().lower()
         if choice == "y":
             register_user()

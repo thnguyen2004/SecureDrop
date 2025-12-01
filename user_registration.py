@@ -10,7 +10,7 @@ from utils import (
 def register_user():
     users = load_users()
 
-    name = input("Enter Full Name: ").strip()
+    name = input("\nEnter Full Name: ").strip()
 
     email = input("Enter Email Address: ").strip()
     if email in users:
@@ -51,4 +51,4 @@ def register_user():
     save_users(users)
 
     print("User Registered.")
-    print("Exiting SecureDrop.\n")
+    print("Exiting SecureDrop.")
