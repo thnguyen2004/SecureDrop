@@ -1,7 +1,8 @@
 from user_registration import register_user
 from user_login import login_user
 from utils import load_users
-from contacts import add_contact_cli, list_contacts_cli
+from contacts import add_contact_cli, load_contacts_for_user
+from discovery import start_discovery, get_online_peers
 
 
 def secure_drop_shell(session):
@@ -19,8 +20,25 @@ def secure_drop_shell(session):
             add_contact_cli(session)
 
         elif cmd == "list":
-            # Milestone 3: List this user's contacts (local view)
-            list_contacts_cli(session)
+            peers = get_online_peers()
+            contacts = load_contacts_for_user(session["email"])
+
+            # Only show contacts where BOTH:
+            # - Contact is confirmed
+            # - Contact is currently online
+            online_confirmed = {}
+
+            for email, info in peers.items():
+                if email in contacts and contacts[email].get("confirmed"):
+                    online_confirmed[email] = info
+
+            if not online_confirmed:
+                print("No contacts online.\n")
+            else:
+                print("The following contacts are online:")
+                for email, info in online_confirmed.items():
+                    print(f" * {info['name']} <{email}> @ {info['ip']}")
+                print()
 
         elif cmd == "exit":
             print("Exiting SecureDrop.\n")
@@ -44,7 +62,8 @@ def main():
     # Login flow
     session = login_user()
 
-    if session is not None:
+    if session:
+        start_discovery(session)
         secure_drop_shell(session)
 
 

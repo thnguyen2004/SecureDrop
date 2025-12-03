@@ -80,22 +80,3 @@ def add_contact_cli(session: dict):
     save_contacts_for_user(owner_email, owner_name, contacts_owner)
 
     print("Contact Added.")
-
-
-# List only confirmed contacts
-def list_contacts_cli(session: dict):
-    owner_email = session["email"]
-    contacts = load_contacts_for_user(owner_email)
-
-    confirmed_contacts = {
-        e: c for e, c in contacts.items() if c.get("confirmed")
-    }
-
-    if not confirmed_contacts:
-        print("No contacts found.\n")
-        return
-
-    print("The following contacts are online:")
-    for email, info in confirmed_contacts.items():
-        print(f" * {info['name']} <{email}>")
-    print()

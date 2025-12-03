@@ -2,10 +2,10 @@ import os
 import json
 import base64
 import hashlib
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 
-# ---------------- USERS -----------------
+# ***** users.py *****
 
 # Load users.json or return empty dictionary
 def load_users():
@@ -79,3 +79,17 @@ def decrypt_private_key(ciphertext_b64: str, nonce_b64: str, tag_b64: str, passw
 
     cipher = AES.new(aes_key, AES.MODE_GCM, nonce=nonce)
     return cipher.decrypt_and_verify(ciphertext, tag)
+
+# ***** discovery.py *****
+
+# Encrypt using a public key (RSA OAEP)
+def rsa_encrypt_with_public_key(public_key_bytes, data: bytes) -> bytes:
+    key = RSA.import_key(public_key_bytes)
+    cipher = PKCS1_OAEP.new(key)
+    return cipher.encrypt(data)
+
+# Decrypt using our private key
+def rsa_decrypt_with_private_key(private_key_bytes, encrypted: bytes) -> bytes:
+    key = RSA.import_key(private_key_bytes)
+    cipher = PKCS1_OAEP.new(key)
+    return cipher.decrypt(encrypted)
