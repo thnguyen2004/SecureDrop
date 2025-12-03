@@ -1,10 +1,23 @@
 {
     "UserA@securedrop.org": {
-        "name": "User A",
+        "name": "",
         "contacts": {
             "UserB@securedrop.org": {
                 "name": "User B",
+                "confirmed": true
+            },
+            "UserC@securedrop.org": {
+                "name": "User C",
                 "confirmed": false
+            }
+        }
+    },
+    "UserB@securedrop.org": {
+        "name": "User B",
+        "contacts": {
+            "UserA@securedrop.org": {
+                "name": "User A",
+                "confirmed": true
             },
             "UserC@securedrop.org": {
                 "name": "User C",
