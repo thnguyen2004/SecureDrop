@@ -24,5 +24,14 @@
                 "confirmed": false
             }
         }
+    },
+    "alice@securedrop.org": {
+        "name": "Alice",
+        "contacts": {
+            "bob@securedrop.org": {
+                "name": "Bob",
+                "confirmed": false
+            }
+        }
     }
 }
