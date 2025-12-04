@@ -20,24 +20,25 @@ def secure_drop_shell(session):
             add_contact_cli(session)
 
         elif cmd == "list":
+            # Milestone 4 (partial): show online peers that are also confirmed contacts
             peers = get_online_peers()
-            contacts = load_contacts_for_user(session["email"])
+            contacts = load_contacts_for_user(session["email"])  # <-- use email, not session
 
-            # Only show contacts where BOTH:
-            # - Contact is confirmed
-            # - Contact is currently online
             online_confirmed = {}
 
-            for email, info in peers.items():
+            for email, peer_info in peers.items():
+                # Only show if this email is in our contacts AND confirmed
                 if email in contacts and contacts[email].get("confirmed"):
-                    online_confirmed[email] = info
+                    online_confirmed[email] = peer_info
 
             if not online_confirmed:
                 print("No contacts online.\n")
             else:
                 print("The following contacts are online:")
                 for email, info in online_confirmed.items():
-                    print(f" * {info['name']} <{email}> @ {info['ip']}")
+                    # Prefer our local contact name
+                    name = contacts[email].get("name", info["name"])
+                    print(f" * {name} <{email}> @ {info['ip']}")
                 print()
 
         elif cmd == "exit":
@@ -46,6 +47,7 @@ def secure_drop_shell(session):
 
         else:
             print("Unknown Command. Type 'help' for options.\n")
+
 
 def main():
     users = load_users()
@@ -63,7 +65,9 @@ def main():
     session = login_user()
 
     if session:
+        # Start UDP discovery in the background (listener + broadcaster)
         start_discovery(session)
+        # Enter interactive shell
         secure_drop_shell(session)
 
 

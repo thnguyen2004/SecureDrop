@@ -3,18 +3,18 @@
 import socket
 import threading
 import time
-from utils import rsa_encrypt_with_public_key, rsa_decrypt_with_private_key
+import json
 
 BROADCAST_PORT = 5005
 BROADCAST_INTERVAL = 3.0  # send every 3 seconds
 PEER_TIMEOUT = 6.0        # offline if silent > 6 seconds
 
-# email -> {name, ip, last_seen}
+# email -> {name, ip, public_key, last_seen}
 online_peers = {}
 
 
-def _listener_thread(private_key_bytes):
-    """Listen for encrypted UDP discovery packets."""
+def _listener_thread(local_email: str):
+    """Listen for UDP discovery packets and update online_peers."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("", BROADCAST_PORT))
@@ -22,59 +22,60 @@ def _listener_thread(private_key_bytes):
     while True:
         try:
             data, addr = s.recvfrom(4096)
+            msg = data.decode("utf-8")
 
-            # First 4 bytes = public key length
-            pk_len = int.from_bytes(data[:4], "big")
-            public_key_bytes = data[4:4 + pk_len]
-            encrypted_identity = data[4 + pk_len:]
+            info = json.loads(msg)
 
-            # Decrypt with our own private key
-            identity = rsa_decrypt_with_private_key(private_key_bytes, encrypted_identity)
-            identity = identity.decode("utf-8")
+            email = info.get("email")
+            name = info.get("name")
+            public_key = info.get("public_key")
 
-            if "|" not in identity:
+            # Ignore malformed packets
+            if not email or not name or not public_key:
                 continue
 
-            email, name = identity.split("|", 1)
+            # Ignore our own broadcasts
+            if email == local_email:
+                continue
 
             online_peers[email] = {
                 "name": name,
                 "ip": addr[0],
-                "public_key": public_key_bytes.decode(),
-                "last_seen": time.time()
+                "public_key": public_key,
+                "last_seen": time.time(),
             }
 
         except Exception:
+            # Ignore bad packets
             continue
 
 
-def _broadcast_thread(session):
-    """Broadcast our encrypted identity every few seconds."""
+def _broadcast_thread(session: dict):
+    """Broadcast our identity (email, name, public_key) every few seconds."""
     email = session["email"]
     name = session["name"]
+    public_key = session["public_key"]
 
-    identity = f"{email}|{name}".encode()
-    public_key = session["public_key"].encode()
-
-    # Prepend public key length for parsing on the receiver side
-    pk_len = len(public_key).to_bytes(4, "big")
+    payload = json.dumps({
+        "email": email,
+        "name": name,
+        "public_key": public_key,
+    }).encode("utf-8")
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     while True:
         try:
-            encrypted_identity = rsa_encrypt_with_public_key(public_key, identity)
-            packet = pk_len + public_key + encrypted_identity
-            s.sendto(packet, ("<broadcast>", BROADCAST_PORT))
+            s.sendto(payload, ("<broadcast>", BROADCAST_PORT))
             time.sleep(BROADCAST_INTERVAL)
         except Exception:
             continue
 
 
-def start_discovery(session):
-    """Start listener + broadcaster threads."""
-    t1 = threading.Thread(target=_listener_thread, args=(session["private_key_bytes"],), daemon=True)
+def start_discovery(session: dict):
+    """Start listener + broadcaster threads for this logged-in user."""
+    t1 = threading.Thread(target=_listener_thread, args=(session["email"],), daemon=True)
     t2 = threading.Thread(target=_broadcast_thread, args=(session,), daemon=True)
     t1.start()
     t2.start()
