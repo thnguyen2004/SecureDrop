@@ -37,7 +37,7 @@ def secure_drop_shell(session):
             else:
                 print("The following contacts are online:")
                 for email, info in online_confirmed.items():
-                    print(f" * {info['name']} <{email}> @ {info['ip']}")
+                    print(f" * {info['name']} <{email}>")
                 print()
 
         elif cmd == "exit":
