@@ -14,7 +14,7 @@ online_peers = {}
 
 
 def _listener_thread(private_key_bytes):
-    """Listen for encrypted UDP discovery packets."""
+    """Listen for UDP discovery packets."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("", BROADCAST_PORT))
@@ -23,14 +23,11 @@ def _listener_thread(private_key_bytes):
         try:
             data, addr = s.recvfrom(4096)
 
-            # First 4 bytes = public key length
             pk_len = int.from_bytes(data[:4], "big")
             public_key_bytes = data[4:4 + pk_len]
-            encrypted_identity = data[4 + pk_len:]
+            identity_bytes = data[4 + pk_len:]
 
-            # Decrypt with our own private key
-            identity = rsa_decrypt_with_private_key(private_key_bytes, encrypted_identity)
-            identity = identity.decode("utf-8")
+            identity = identity_bytes.decode("utf-8")
 
             if "|" not in identity:
                 continue
@@ -49,14 +46,11 @@ def _listener_thread(private_key_bytes):
 
 
 def _broadcast_thread(session):
-    """Broadcast our encrypted identity every few seconds."""
     email = session["email"]
     name = session["name"]
 
     identity = f"{email}|{name}".encode()
     public_key = session["public_key"].encode()
-
-    # Prepend public key length for parsing on the receiver side
     pk_len = len(public_key).to_bytes(4, "big")
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -64,8 +58,7 @@ def _broadcast_thread(session):
 
     while True:
         try:
-            encrypted_identity = rsa_encrypt_with_public_key(public_key, identity)
-            packet = pk_len + public_key + encrypted_identity
+            packet = pk_len + public_key + identity
             s.sendto(packet, ("<broadcast>", BROADCAST_PORT))
             time.sleep(BROADCAST_INTERVAL)
         except Exception:

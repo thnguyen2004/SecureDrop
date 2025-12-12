@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import hashlib
+import hmac
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 
@@ -93,3 +94,20 @@ def rsa_decrypt_with_private_key(private_key_bytes, encrypted: bytes) -> bytes:
     key = RSA.import_key(private_key_bytes)
     cipher = PKCS1_OAEP.new(key)
     return cipher.decrypt(encrypted)
+
+def derive_hmac_key(private_key_bytes: bytes) -> bytes:
+    """
+    Derive a stable HMAC key from the user's private key.
+    """
+    return hashlib.sha256(private_key_bytes).digest()
+
+
+def compute_hmac(data: bytes, key: bytes) -> str:
+    mac = hmac.new(key, data, hashlib.sha256).digest()
+    return base64.b64encode(mac).decode()
+
+
+def verify_hmac(data: bytes, key: bytes, expected_b64: str) -> bool:
+    expected = base64.b64decode(expected_b64)
+    actual = hmac.new(key, data, hashlib.sha256).digest()
+    return hmac.compare_digest(actual, expected)

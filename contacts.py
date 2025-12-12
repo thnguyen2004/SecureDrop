@@ -3,80 +3,93 @@
 import json
 import os
 
-CONTACTS_FILE = "contacts.json"
+from utils import derive_hmac_key, compute_hmac, verify_hmac
 
+CONTACTS_FILE = "contacts.json"
+HMAC_FILE = "contacts.json.hmac"
 
 # Load entire contacts.json or return empty structure
-def _load_all_contacts():
-    if os.path.exists(CONTACTS_FILE) and os.path.getsize(CONTACTS_FILE) > 0:
-        try:
-            with open(CONTACTS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            return {}
-    return {}
+def _load_all_contacts(session: dict):
+    if not os.path.exists(CONTACTS_FILE):
+        return {}
+
+    with open(CONTACTS_FILE, "rb") as f:
+        data = f.read()
+
+    if not os.path.exists(HMAC_FILE):
+        raise RuntimeError("Contacts integrity file missing.")
+
+    with open(HMAC_FILE, "r", encoding="utf-8") as f:
+        stored_hmac = f.read().strip()
+
+    key = derive_hmac_key(session["private_key_bytes"])
+
+    if not verify_hmac(data, key, stored_hmac):
+        raise RuntimeError("Contacts file has been tampered with.")
+
+    return json.loads(data.decode("utf-8"))
 
 
 # Save entire contacts.json
-def _save_all_contacts(all_data):
-    with open(CONTACTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(all_data, f, indent=4)
+def _save_all_contacts(all_data: dict, session: dict):
+    data = json.dumps(all_data, indent=4).encode("utf-8")
+
+    with open(CONTACTS_FILE, "wb") as f:
+        f.write(data)
+
+    key = derive_hmac_key(session["private_key_bytes"])
+    mac = compute_hmac(data, key)
+
+    with open(HMAC_FILE, "w", encoding="utf-8") as f:
+        f.write(mac)
 
 
 # Get the logged-in user's contact list, or empty if none exist
-def load_contacts_for_user(email: str) -> dict:
-    all_data = _load_all_contacts()
-    user_entry = all_data.get(email, {})
-    return user_entry.get("contacts", {})
+def load_contacts_for_user(session: dict) -> dict:
+    all_data = _load_all_contacts(session)
+    return all_data.get(session["email"], {}).get("contacts", {})
 
 
-# Save the logged-in user's contacts
-def save_contacts_for_user(email: str, name: str, contacts: dict):
-    all_data = _load_all_contacts()
+def save_contacts_for_user(session: dict, contacts: dict):
+    all_data = _load_all_contacts(session)
 
-    all_data[email] = {
-        "name": name,
+    all_data[session["email"]] = {
+        "name": session["name"],
         "contacts": contacts
     }
 
-    _save_all_contacts(all_data)
+    _save_all_contacts(all_data, session)
 
 
 # Add a contact (user A adds user B)
 def add_contact_cli(session: dict):
     owner_email = session["email"]
-    owner_name = session["name"]
 
     contact_name = input("Enter Full Name: ").strip()
     contact_email = input("Enter Email Address: ").strip()
 
-    if not contact_name or not contact_email:
-        print("Name and email are required.\n")
-        return
+    contacts_owner = load_contacts_for_user(session)
+    contacts_other = {}
 
-    # Load all existing contacts
-    contacts_owner = load_contacts_for_user(owner_email)
-    contacts_other = load_contacts_for_user(contact_email)
+    try:
+        contacts_other = _load_all_contacts(session).get(contact_email, {}).get("contacts", {})
+    except RuntimeError:
+        pass
 
-    # Add pending contact for owner
     contacts_owner[contact_email] = {
         "name": contact_name,
         "confirmed": False
     }
 
-    # If the other user also added this user -> confirm both sides
     if owner_email in contacts_other:
         contacts_owner[contact_email]["confirmed"] = True
         contacts_other[owner_email]["confirmed"] = True
 
-        # Save the other user's updated entry
         save_contacts_for_user(
-            contact_email,
-            contacts_other.get("name", ""),
+            {"email": contact_email, "name": contact_name, "private_key_bytes": session["private_key_bytes"]},
             contacts_other
         )
 
-    # Save owner's updated contacts
-    save_contacts_for_user(owner_email, owner_name, contacts_owner)
+    save_contacts_for_user(session, contacts_owner)
 
     print("Contact Added.")

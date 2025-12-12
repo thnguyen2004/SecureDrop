@@ -21,7 +21,7 @@ def secure_drop_shell(session):
 
         elif cmd == "list":
             peers = get_online_peers()
-            contacts = load_contacts_for_user(session["email"])
+            contacts = load_contacts_for_user(session)
 
             # Only show contacts where BOTH:
             # - Contact is confirmed
@@ -37,7 +37,7 @@ def secure_drop_shell(session):
             else:
                 print("The following contacts are online:")
                 for email, info in online_confirmed.items():
-                    print(f" * {info['name']} <{email}> @ {info['ip']}")
+                    print(f" * {info['name']} <{email}>")
                 print()
 
         elif cmd == "exit":
